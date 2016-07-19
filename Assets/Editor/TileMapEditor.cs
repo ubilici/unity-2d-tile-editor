@@ -9,6 +9,11 @@ public class TileMapEditor : Editor
     TileBrush brush;
     Vector3 mouseHitPos;
 
+    bool mouseOnMap
+    {
+        get { return mouseHitPos.x > 0 && mouseHitPos.x < map.gridSize.x && mouseHitPos.y < 0 && mouseHitPos.y > -map.gridSize.y; }
+    }
+
     public override void OnInspectorGUI()
     {
         EditorGUILayout.BeginVertical();
@@ -33,6 +38,14 @@ public class TileMapEditor : Editor
             EditorGUILayout.LabelField("Grid Size in Units:", map.gridSize.x + "x" + map.gridSize.y);
             EditorGUILayout.LabelField("Pixels to Units:", map.pixelsToUnits.ToString());
             UpdateBrush(map.currentTileBrush);
+
+            if (GUILayout.Button("Clear Tiles"))
+            {
+                if (EditorUtility.DisplayDialog("Clear all tiles of map?", "Are you sure?", "Clear", "Do not Clear"))
+                {
+                    ClearMap();
+                }
+            }
         }
 
         EditorGUILayout.EndVertical();
@@ -42,6 +55,15 @@ public class TileMapEditor : Editor
     {
         map = target as TileMap;
         Tools.current = Tool.View;
+
+        if (map.tiles == null)
+        {
+            var go = new GameObject("Tiles");
+            go.transform.SetParent(map.transform);
+            go.transform.position = Vector3.zero;
+
+            map.tiles = go;
+        }
 
         if (map.texture2D != null)
         {
@@ -62,6 +84,19 @@ public class TileMapEditor : Editor
         {
             UpdateHitPosition();
             MoveBrush();
+
+            if (map.texture2D != null && mouseOnMap)
+            {
+                Event current = Event.current;
+                if (current.shift)
+                {
+                    Draw();
+                }
+                else if (current.alt)
+                {
+                    RemoveTile();
+                }
+            }
         }
     }
 
@@ -146,6 +181,12 @@ public class TileMapEditor : Editor
         var row = x / tileSize;
         var column = Mathf.Abs(y / tileSize) - 1;
 
+        // If mouse out of boundaries do not set new position and return.
+        if (!mouseOnMap)
+        {
+            return;
+        }
+
         var id = (int)((column * map.mapSize.x) + row);
 
         brush.tileID = id;
@@ -154,6 +195,47 @@ public class TileMapEditor : Editor
         y += map.transform.position.y + tileSize / 2;
 
         brush.transform.position = new Vector3(x, y, map.transform.position.z);
+    }
+
+    void Draw()
+    {
+        var id = brush.tileID.ToString();
+
+        var posX = brush.transform.position.x;
+        var posY = brush.transform.position.y;
+
+        GameObject tile = GameObject.Find(map.name + "/Tiles/tile_" + id);
+        if (tile == null)
+        {
+            tile = new GameObject("tile_" + id);
+            tile.transform.SetParent(map.tiles.transform);
+            tile.transform.position = new Vector3(posX, posY, 0);
+            tile.AddComponent<SpriteRenderer>();
+        }
+
+        tile.GetComponent<SpriteRenderer>().sprite = brush.renderer2D.sprite;
+    }
+
+    void RemoveTile()
+    {
+        var id = brush.tileID.ToString();
+
+        GameObject tile = GameObject.Find(map.name + "/Tiles/tile_" + id);
+
+        if (tile != null)
+        {
+            DestroyImmediate(tile);
+        }
+    }
+
+    void ClearMap()
+    {
+        for (int i = 0; i < map.tiles.transform.childCount; i++)
+        {
+            Transform t = map.tiles.transform.GetChild(i);
+            DestroyImmediate(t.gameObject);
+            i--;
+        }
     }
 
 }

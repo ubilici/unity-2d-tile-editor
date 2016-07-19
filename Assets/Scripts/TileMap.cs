@@ -11,6 +11,7 @@ public class TileMap : MonoBehaviour
     public Vector2 gridSize = new Vector2();
     public int pixelsToUnits = 100;
     public int tileID = 0;
+    public GameObject tiles;
 
     public Sprite currentTileBrush
     {
