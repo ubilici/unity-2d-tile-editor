@@ -26,7 +26,15 @@ public class TileMapEditor : Editor
             UpdateCalculations();
         }
 
+        var oldTexture = map.texture2D;
         map.texture2D = (Texture2D)EditorGUILayout.ObjectField("Texture2D:", map.texture2D, typeof(Texture2D), false);
+
+        if (oldTexture != map.texture2D)
+        {
+            UpdateCalculations();
+            map.tileID = 1;
+            CreateBrush();
+        }
 
         if (map.texture2D == null)
         {
@@ -125,6 +133,7 @@ public class TileMapEditor : Editor
 
             brush = go.AddComponent<TileBrush>();
             brush.renderer2D = go.AddComponent<SpriteRenderer>();
+            brush.renderer2D.sortingOrder = 1000;
 
             var pixelsToUnits = map.pixelsToUnits;
             brush.brushSize = new Vector2(sprite.textureRect.width / pixelsToUnits, sprite.textureRect.height / pixelsToUnits);
